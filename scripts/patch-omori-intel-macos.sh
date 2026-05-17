@@ -174,6 +174,82 @@ GREENWORKS_PATCHED="$TMP/greenworks.js.with-polyfill"
 } > "$GREENWORKS_PATCHED"
 mv "$GREENWORKS_PATCHED" "$LIBS_DIR/greenworks.js"
 
+# 18c. Inyectar Logger de Debug para rastrear crash en "New Game"
+echo "Inyectando logger de debug..."
+cat > "$LIBS_DIR/omori-debug-log.js" <<'DEBUG_LOGGER'
+(function initOmoriDebugLogger() {
+    const fs = require('fs');
+    const path = require('path');
+    const os = require('os');
+    const logPath = path.join(os.homedir(), 'Desktop', 'omori-js-debug.log');
+    
+    function writeLog(level, ...args) {
+        const msg = new Date().toISOString() + ' [' + level + '] ' + args.map(a => typeof a === 'object' ? (a && a.stack ? a.stack : JSON.stringify(a, null, 2)) : String(a)).join(' ') + '\n';
+        try { fs.appendFileSync(logPath, msg); } catch(e) {}
+    }
+    
+    writeLog('INFO', 'OMORI Debug Logger Initialized');
+    writeLog('INFO', 'Argv:', process.argv);
+    
+    window.addEventListener('error', function(e) {
+        writeLog('FATAL', 'window.error', e.message, e.filename, e.lineno, e.colno, e.error);
+    });
+    
+    window.addEventListener('unhandledrejection', function(e) {
+        writeLog('FATAL', 'unhandledrejection', e.reason);
+    });
+    
+    process.on('uncaughtException', function(err) {
+        writeLog('FATAL', 'uncaughtException', err);
+    });
+    
+    const origError = console.error;
+    console.error = function(...args) {
+        writeLog('ERROR', ...args);
+        origError.apply(console, args);
+    };
+    
+    const origWarn = console.warn;
+    console.warn = function(...args) {
+        writeLog('WARN', ...args);
+        origWarn.apply(console, args);
+    };
+
+    const origLog = console.log;
+    console.log = function(...args) {
+        writeLog('LOG', ...args);
+        origLog.apply(console, args);
+    };
+
+    // Intercept game closing
+    const origClose = window.close;
+    window.close = function() {
+        writeLog('WARN', 'window.close() called by', new Error().stack);
+        origClose.apply(window);
+    };
+    
+    const origExit = process.exit;
+    process.exit = function(code) {
+        writeLog('WARN', 'process.exit(' + code + ') called by', new Error().stack);
+        origExit.call(process, code);
+    };
+    
+    if (window.nw && window.nw.App) {
+        const origQuit = window.nw.App.quit;
+        window.nw.App.quit = function() {
+            writeLog('WARN', 'nw.App.quit() called by', new Error().stack);
+            origQuit.apply(window.nw.App);
+        };
+    }
+})();
+DEBUG_LOGGER
+
+INDEX_HTML="$NEW_APP/Contents/Resources/app.nw/index.html"
+if [ -f "$INDEX_HTML" ]; then
+    perl -0pi -e 's#(<head>)#$1\n    <script type="text/javascript" src="js/libs/omori-debug-log.js"></script>#' "$INDEX_HTML"
+fi
+
+
 # 19. Copiar Steamworks API a /lib/ junto al .node y a MacOS
 STEAM_API="$STEAMWORKS_DIR/lib/steam/redistributable_bin/osx/libsteam_api.dylib"
 SDK_TICKET="$STEAMWORKS_DIR/lib/steam/public/steam/lib/osx/libsdkencryptedappticket.dylib"
