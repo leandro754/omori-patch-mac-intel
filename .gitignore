@@ -7,7 +7,6 @@
 !LICENSE
 !scripts/
 !scripts/*
-!agent.md
 
 # But ignore temporary files even if inside scripts/
 *.zip
