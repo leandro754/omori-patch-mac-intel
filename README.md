@@ -2,7 +2,7 @@
 
 A compatibility patch for the Steam version of **OMORI** on Intel-based Macs (x86_64), fixing crashes and launch failures caused by outdated runtime components.
 
-> **⚠️ Intel only.** This patch does not support Apple Silicon (M1/M2/M3).
+> **Intel only.** This patch does not support Apple Silicon (M1/M2/M3).
 
 ## What it fixes
 
