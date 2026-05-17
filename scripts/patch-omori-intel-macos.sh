@@ -7,6 +7,7 @@ APP_ID="1150690"
 NWJS_VERSION="0.98.0"
 GREENWORKS_VERSION="0.20.0"
 STEAMWORKS_SYS_VERSION="0.12.0"
+SAFE_CHROMIUM_ARGS="--disable-gpu --disable-gpu-compositing --disable-gpu-rasterization --disable-accelerated-2d-canvas --disable-zero-copy --disable-gpu-memory-buffer-video-frames"
 
 # 3. Detectar arquitectura
 ARCH=$(uname -m)
@@ -105,6 +106,28 @@ cp -R "$BACKUP_DIR/Contents/Resources/app.nw/." "$NEW_APP/Contents/Resources/app
 # 16. Copiar app.icns si existe
 if [ -f "$BACKUP_DIR/Contents/Resources/app.icns" ]; then
     cp "$BACKUP_DIR/Contents/Resources/app.icns" "$NEW_APP/Contents/Resources/"
+fi
+
+PKG_JSON="$NEW_APP/Contents/Resources/app.nw/package.json"
+if [ -f "$PKG_JSON" ]; then
+    echo "Aplicando flags seguros de Chromium para Intel GPU..."
+    if grep -q '"chromium-args"' "$PKG_JSON"; then
+        perl -0pi -e "s#\"chromium-args\"\\s*:\\s*\"[^\"]*\"#\"chromium-args\": \"$SAFE_CHROMIUM_ARGS\"#" "$PKG_JSON"
+    else
+        perl -0pi -e "s#\\{\\s*#{\n  \"chromium-args\": \"$SAFE_CHROMIUM_ARGS\",\n#" "$PKG_JSON"
+    fi
+
+    if command -v plutil >/dev/null 2>&1; then
+        plutil -lint "$PKG_JSON" >/dev/null || {
+            echo "ERROR: package.json quedó inválido después de aplicar chromium-args."
+            exit 1
+        }
+    fi
+fi
+
+RPG_MANAGERS="$NEW_APP/Contents/Resources/app.nw/js/rpg_managers.js"
+if [ -f "$RPG_MANAGERS" ]; then
+    perl -0pi -e 's#let steamkey = String\(window\.nw\.App\.argv\)\.replace\("--", ""\);#let steamkey = (window.nw.App.argv || []).map(String).map(arg => arg.replace(/^--/, "")).find(arg => /^[0-9a-fA-F]{32}$/.test(arg)) || String(window.nw.App.argv).replace("--", "");#g' "$RPG_MANAGERS"
 fi
 
 LIBS_DIR="$NEW_APP/Contents/Resources/app.nw/js/libs"
@@ -239,9 +262,25 @@ file "$APP_DIR/Contents/Resources/app.nw/js/libs/lib/libsteam_api.dylib"
 file "$APP_DIR/Contents/Resources/app.nw/js/libs/lib/libsdkencryptedappticket.dylib"
 ls -lh "$APP_DIR/Contents/Resources/app.nw/js/libs" | grep -E "greenworks|node-polyfill" || true
 ls -lh "$APP_DIR/Contents/Resources/app.nw/js/libs/lib" | grep -E "greenworks|steam|sdk" || true
+grep -n '"chromium-args"' "$APP_DIR/Contents/Resources/app.nw/package.json" || true
 
 if file "$APP_DIR/Contents/Resources/app.nw/js/libs/lib/greenworks-osx.node" | grep -qi "ASCII text"; then
     echo "ERROR: Greenworks se descargó mal; no es binario Mach-O."
+    exit 1
+fi
+
+if ! grep -q -- "--disable-gpu" "$APP_DIR/Contents/Resources/app.nw/package.json"; then
+    echo "ERROR: package.json no tiene los flags seguros de Chromium para Intel GPU."
+    exit 1
+fi
+
+if grep -q -- "--enable-gpu-rasterization" "$APP_DIR/Contents/Resources/app.nw/package.json"; then
+    echo "ERROR: package.json conserva flags GPU incompatibles con este parche."
+    exit 1
+fi
+
+if ! grep -q "^[[:space:]]*let steamkey = (window.nw.App.argv" "$APP_DIR/Contents/Resources/app.nw/js/rpg_managers.js"; then
+    echo "ERROR: rpg_managers.js no tiene el parser robusto de Steam key."
     exit 1
 fi
 
