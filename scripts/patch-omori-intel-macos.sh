@@ -111,9 +111,18 @@ LIBS_DIR="$NEW_APP/Contents/Resources/app.nw/js/libs"
 mkdir -p "$LIBS_DIR/lib"
 
 GW_DIR="$TMP/greenworks-v$GREENWORKS_VERSION-nw-v$NWJS_VERSION-osx"
+if [ ! -f "$GW_DIR/greenworks.js" ]; then
+    GW_DIR="$TMP"
+fi
+
 STEAMWORKS_DIR="$TMP/steamworks-sys-$STEAMWORKS_SYS_VERSION"
 
 # 18. Copiar greenworks oficial a libs (greenworks.js requiere que el .node esté en /lib/)
+if [ ! -f "$GW_DIR/greenworks.js" ] || [ ! -f "$GW_DIR/lib/greenworks-osx.node" ]; then
+    echo "ERROR: Greenworks no se extrajo con la estructura esperada."
+    exit 1
+fi
+
 cp "$GW_DIR/greenworks.js" "$LIBS_DIR/greenworks.js"
 cp "$GW_DIR/lib/greenworks-osx.node" "$LIBS_DIR/lib/greenworks-osx.node"
 
