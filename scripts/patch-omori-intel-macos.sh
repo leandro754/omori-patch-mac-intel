@@ -121,7 +121,7 @@ fi
 
 RPG_MANAGERS="$NEW_APP/Contents/Resources/app.nw/js/rpg_managers.js"
 if [ -f "$RPG_MANAGERS" ]; then
-    perl -0pi -e 's#let steamkey = String\(window\.nw\.App\.argv\)\.replace\("--", ""\);#let steamkey = (window.nw.App.argv || []).map(String).map(arg => arg.replace(/^--/, "")).find(arg => /^[0-9a-fA-F]{32}$/.test(arg)) || String(window.nw.App.argv).replace("--", "");#g' "$RPG_MANAGERS"
+    perl -0pi -e 's#let steamkey = String\(window\.nw\.App\.argv\)\.replace\("--", ""\);#let steamkey = (window.nw.App.argv || []).map(String).map(arg => arg.replace(/^--/, "")).find(arg => arg.length === 32 && !/[^0-9a-fA-F]/.test(arg)) || String(window.nw.App.argv).replace("--", "");#g' "$RPG_MANAGERS"
 fi
 
 LIBS_DIR="$NEW_APP/Contents/Resources/app.nw/js/libs"
@@ -273,7 +273,7 @@ if grep -q -- "--enable-gpu-rasterization" "$APP_DIR/Contents/Resources/app.nw/p
     exit 1
 fi
 
-if ! grep -q "^[[:space:]]*let steamkey = (window.nw.App.argv" "$APP_DIR/Contents/Resources/app.nw/js/rpg_managers.js"; then
+if ! grep -q "arg.length === 32" "$APP_DIR/Contents/Resources/app.nw/js/rpg_managers.js"; then
     echo "ERROR: rpg_managers.js no tiene el parser robusto de Steam key."
     exit 1
 fi
