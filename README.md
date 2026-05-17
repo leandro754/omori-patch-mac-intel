@@ -1,11 +1,17 @@
 # OMORI Patch para macOS Intel (x86_64)
 
-Este repositorio soluciona los problemas de compatibilidad para ejecutar la versión de Steam de OMORI en ordenadores Mac con procesador Intel, actualizando NW.js y las librerías de Steamworks para evitar el error *"Steam has not been detected"* y fallos al iniciar.
+Este repositorio soluciona los problemas de compatibilidad para ejecutar la versión de Steam de OMORI en ordenadores Mac con procesador Intel, actualizando NW.js, Greenworks y las librerías de Steamworks para evitar el error *"Steam has not been detected"* y fallos al iniciar.
 
 ## ¿Qué problema soluciona?
 
 OMORI en macOS utiliza un empaquetado de 32 bits y una versión de NW.js que no es compatible con versiones modernas del sistema. Aunque existen otros scripts, este asegura ser robusto, completamente idempotente, e incorpora validaciones rigurosas.
-Evita problemas donde descargas mal realizadas (sin `-L`), o binarios corruptos / falsos (archivos de texto en vez de ejecutables Mach-O), terminaban corrompiendo la instalación del juego. 
+Evita problemas donde descargas mal realizadas (sin `-L`), binarios corruptos/falsos (archivos de texto en vez de ejecutables Mach-O), o mezclas incompatibles de Greenworks y Steamworks terminaban corrompiendo la instalación del juego.
+
+La combinación usada por el parche es:
+
+- NW.js `0.98.0` para macOS x64.
+- Greenworks `0.20.0`, compilado para NW.js `0.98.0`.
+- Steamworks SDK `1.62`, obtenido desde `steamworks-sys` `0.12.0`, para que `libsteam_api.dylib` exponga las interfaces que Greenworks `0.20.0` espera (`SteamUser023` y `SteamFriends018`).
 
 ## ⚠️ EXCLUSIVO para Mac Intel x86_64
 
@@ -54,9 +60,10 @@ OMORI_DIR="/ruta/a/OMORI" ./install.sh
 - **Cómo comprobar que Greenworks está bien:**
   Puedes verificar con el siguiente comando:
   ```bash
-  file "OMORI.app/Contents/Resources/app.nw/js/libs/greenworks-osx64.node"
+  file "OMORI.app/Contents/Resources/app.nw/js/libs/lib/greenworks-osx.node"
+  strings "OMORI.app/Contents/Resources/app.nw/js/libs/lib/libsteam_api.dylib" | grep -E "SteamUser023|SteamFriends018"
   ```
-  Debe decir Mach-O, no ASCII text. Nuestro script hace esta verificación por ti obligatoriamente.
+  El `.node` debe decir Mach-O, no ASCII text. La dylib debe mostrar `SteamUser023` y `SteamFriends018`. Nuestro script hace estas verificaciones por ti obligatoriamente.
 
 ## Advertencia
 - Este repositorio **NO** incluye el juego OMORI y no piratea absolutamente nada. Requiere una copia legítima del juego de Steam.

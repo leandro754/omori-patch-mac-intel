@@ -3,6 +3,11 @@ set -euo pipefail
 
 echo "Iniciando parcheo de OMORI para macOS Intel x86_64..."
 
+APP_ID="1150690"
+NWJS_VERSION="0.98.0"
+GREENWORKS_VERSION="0.20.0"
+STEAMWORKS_SYS_VERSION="0.12.0"
+
 # 3. Detectar arquitectura
 ARCH=$(uname -m)
 if [ "$ARCH" != "x86_64" ]; then
@@ -44,21 +49,21 @@ cd "$TMP"
 
 echo "Descargando archivos necesarios..."
 # 10. Descargar con curl
-CURL_OPTS="-fL --retry 3 --connect-timeout 20"
+CURL_OPTS=(-fL --retry 3 --connect-timeout 20)
 
 # 11. Descargas requeridas
 echo "Descargando NW.js Intel x64..."
-curl $CURL_OPTS -o nwjs.zip "https://dl.nwjs.io/v0.98.0/nwjs-v0.98.0-osx-x64.zip"
+curl "${CURL_OPTS[@]}" -o nwjs.zip "https://dl.nwjs.io/v$NWJS_VERSION/nwjs-v$NWJS_VERSION-osx-x64.zip"
 
 echo "Descargando Greenworks oficial..."
-curl $CURL_OPTS -o greenworks.zip "https://github.com/greenheartgames/greenworks/releases/download/v0.20.0/greenworks-v0.20.0-nw-v0.98.0-osx.zip"
+curl "${CURL_OPTS[@]}" -o greenworks.zip "https://github.com/greenheartgames/greenworks/releases/download/v$GREENWORKS_VERSION/greenworks-v$GREENWORKS_VERSION-nw-v$NWJS_VERSION-osx.zip"
 
-echo "Descargando Steamworks API..."
-curl $CURL_OPTS -o steam.zip "https://dl.snowp.io/omori-apple-silicon/steam.zip"
+echo "Descargando Steamworks API compatible con Greenworks..."
+curl "${CURL_OPTS[@]}" -A "omori-patch-mac-intel" -o steamworks-sys.crate "https://static.crates.io/crates/steamworks-sys/steamworks-sys-$STEAMWORKS_SYS_VERSION.crate"
 
 # 12. Verificar los ZIPs antes de extraer
 echo "Verificando integridad de los archivos descargados..."
-for zipfile in nwjs.zip greenworks.zip steam.zip; do
+for zipfile in nwjs.zip greenworks.zip; do
     if ! file "$zipfile" | grep -q "Zip archive data"; then
         echo "ERROR: $zipfile no es un archivo ZIP válido."
         exit 1
@@ -69,23 +74,33 @@ for zipfile in nwjs.zip greenworks.zip steam.zip; do
     fi
 done
 
+if ! file steamworks-sys.crate | grep -Eq "gzip compressed data|tar archive"; then
+    echo "ERROR: steamworks-sys.crate no es un tarball válido."
+    exit 1
+fi
+
+if ! tar -tzf steamworks-sys.crate >/dev/null; then
+    echo "ERROR: steamworks-sys.crate está corrupto."
+    exit 1
+fi
+
 # 13. Extraer con -oq
 echo "Extrayendo archivos..."
 unzip -oq nwjs.zip
 unzip -oq greenworks.zip
-unzip -oq steam.zip
+tar -xzf steamworks-sys.crate
 
 # Preparar nueva app en temporal
 NEW_APP="$TMP/OMORI.app"
 echo "Armando nueva OMORI.app..."
 
 # 14. Copiar nwjs.app como nueva OMORI.app
-cp -R "nwjs-v0.98.0-osx-x64/nwjs.app" "$NEW_APP"
+cp -R "nwjs-v$NWJS_VERSION-osx-x64/nwjs.app" "$NEW_APP"
 
 # 15. Copiar app.nw desde el backup original
 echo "Copiando datos del juego (esto puede tardar unos segundos)..."
 mkdir -p "$NEW_APP/Contents/Resources/app.nw"
-cp -R "$BACKUP_DIR/Contents/Resources/app.nw/"* "$NEW_APP/Contents/Resources/app.nw/"
+cp -R "$BACKUP_DIR/Contents/Resources/app.nw/." "$NEW_APP/Contents/Resources/app.nw/"
 
 # 16. Copiar app.icns si existe
 if [ -f "$BACKUP_DIR/Contents/Resources/app.icns" ]; then
@@ -95,31 +110,46 @@ fi
 LIBS_DIR="$NEW_APP/Contents/Resources/app.nw/js/libs"
 mkdir -p "$LIBS_DIR/lib"
 
-GW_DIR="$TMP/greenworks-v0.20.0-nw-v0.98.0-osx"
+GW_DIR="$TMP/greenworks-v$GREENWORKS_VERSION-nw-v$NWJS_VERSION-osx"
+STEAMWORKS_DIR="$TMP/steamworks-sys-$STEAMWORKS_SYS_VERSION"
 
 # 18. Copiar greenworks oficial a libs (greenworks.js requiere que el .node esté en /lib/)
 cp "$GW_DIR/greenworks.js" "$LIBS_DIR/greenworks.js"
 cp "$GW_DIR/lib/greenworks-osx.node" "$LIBS_DIR/lib/greenworks-osx.node"
 
 # 19. Copiar Steamworks API a /lib/ junto al .node y a MacOS
-STEAM_API=$(find "$TMP" -name "libsteam_api.dylib" -type f | grep -v "OMORI.app" | head -n 1)
-SDK_TICKET=$(find "$TMP" -name "libsdkencryptedappticket.dylib" -type f | grep -v "OMORI.app" | head -n 1)
+STEAM_API="$STEAMWORKS_DIR/lib/steam/redistributable_bin/osx/libsteam_api.dylib"
+SDK_TICKET="$STEAMWORKS_DIR/lib/steam/public/steam/lib/osx/libsdkencryptedappticket.dylib"
 
-if [ -n "$STEAM_API" ]; then 
-    cp "$STEAM_API" "$LIBS_DIR/lib/"
-    cp "$STEAM_API" "$NEW_APP/Contents/MacOS/"
-else 
-    echo "ERROR: Falta libsteam_api.dylib."
+if [ ! -f "$STEAM_API" ]; then
+    echo "ERROR: Falta libsteam_api.dylib de Steamworks SDK 1.62."
     exit 1
 fi
 
-if [ -n "$SDK_TICKET" ]; then 
-    cp "$SDK_TICKET" "$LIBS_DIR/lib/"
+if [ ! -f "$SDK_TICKET" ]; then
+    echo "ERROR: Falta libsdkencryptedappticket.dylib de Steamworks SDK 1.62."
+    exit 1
 fi
 
+if ! strings "$STEAM_API" | grep -q "SteamUser023"; then
+    echo "ERROR: libsteam_api.dylib no expone SteamUser023; no es compatible con Greenworks $GREENWORKS_VERSION."
+    exit 1
+fi
+
+if ! strings "$STEAM_API" | grep -q "SteamFriends018"; then
+    echo "ERROR: libsteam_api.dylib no expone SteamFriends018; no es compatible con Greenworks $GREENWORKS_VERSION."
+    exit 1
+fi
+
+cp "$STEAM_API" "$LIBS_DIR/lib/"
+cp "$SDK_TICKET" "$LIBS_DIR/lib/"
+cp "$STEAM_API" "$NEW_APP/Contents/MacOS/"
+cp "$SDK_TICKET" "$NEW_APP/Contents/MacOS/"
+
 # 21. Crear steam_appid.txt
-echo "1150690" > "$NEW_APP/Contents/MacOS/steam_appid.txt"
-echo "1150690" > "$NEW_APP/Contents/Resources/app.nw/steam_appid.txt"
+printf '%s\n' "$APP_ID" > "$NEW_APP/Contents/MacOS/steam_appid.txt"
+printf '%s\n' "$APP_ID" > "$NEW_APP/Contents/Resources/app.nw/steam_appid.txt"
+printf '%s\n' "$APP_ID" > "$LIBS_DIR/lib/steam_appid.txt"
 
 # 22. Aplicar fixes de guardado si los archivos existen
 echo "Aplicando fixes de guardado..."
@@ -149,6 +179,7 @@ PLIST="$NEW_APP/Contents/Info.plist"
 echo "Instalando la nueva versión de OMORI.app..."
 rm -rf "$APP_DIR"
 cp -R "$NEW_APP" "$APP_DIR"
+printf '%s\n' "$APP_ID" > "$OMORI_DIR/steam_appid.txt"
 
 # 25, 26. Ajustar permisos y quitar cuarentena
 echo "Ajustando permisos..."
@@ -165,10 +196,16 @@ echo "Realizando verificaciones finales..."
 file "$APP_DIR/Contents/MacOS/"*
 file "$APP_DIR/Contents/Resources/app.nw/js/libs/lib/greenworks-osx.node"
 file "$APP_DIR/Contents/Resources/app.nw/js/libs/lib/libsteam_api.dylib"
+file "$APP_DIR/Contents/Resources/app.nw/js/libs/lib/libsdkencryptedappticket.dylib"
 ls -lh "$APP_DIR/Contents/Resources/app.nw/js/libs/lib" | grep -E "greenworks|steam|sdk" || true
 
 if file "$APP_DIR/Contents/Resources/app.nw/js/libs/lib/greenworks-osx.node" | grep -qi "ASCII text"; then
     echo "ERROR: Greenworks se descargó mal; no es binario Mach-O."
+    exit 1
+fi
+
+if ! strings "$APP_DIR/Contents/Resources/app.nw/js/libs/lib/libsteam_api.dylib" | grep -q "SteamUser023"; then
+    echo "ERROR: libsteam_api.dylib instalada no es la versión compatible con Steamworks SDK 1.62."
     exit 1
 fi
 
