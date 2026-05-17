@@ -111,18 +111,12 @@ fi
 PKG_JSON="$NEW_APP/Contents/Resources/app.nw/package.json"
 if [ -f "$PKG_JSON" ]; then
     echo "Aplicando flags seguros de Chromium para Intel GPU..."
-    if grep -q '"chromium-args"' "$PKG_JSON"; then
-        perl -0pi -e "s#\"chromium-args\"\\s*:\\s*\"[^\"]*\"#\"chromium-args\": \"$SAFE_CHROMIUM_ARGS\"#" "$PKG_JSON"
-    else
-        perl -0pi -e "s#\\{\\s*#{\n  \"chromium-args\": \"$SAFE_CHROMIUM_ARGS\",\n#" "$PKG_JSON"
+    if ! grep -q '"chromium-args"' "$PKG_JSON"; then
+        echo "ERROR: package.json no contiene chromium-args para reemplazar."
+        exit 1
     fi
 
-    if command -v plutil >/dev/null 2>&1; then
-        plutil -lint "$PKG_JSON" >/dev/null || {
-            echo "ERROR: package.json quedó inválido después de aplicar chromium-args."
-            exit 1
-        }
-    fi
+    SAFE_CHROMIUM_ARGS="$SAFE_CHROMIUM_ARGS" perl -0pi -e 'BEGIN { $args = $ENV{"SAFE_CHROMIUM_ARGS"}; } s#("chromium-args"\s*:\s*")[^"]*(")#$1$args$2#' "$PKG_JSON"
 fi
 
 RPG_MANAGERS="$NEW_APP/Contents/Resources/app.nw/js/rpg_managers.js"
