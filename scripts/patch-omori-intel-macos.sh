@@ -99,7 +99,7 @@ if [ -f "$BACKUP_DIR/Contents/Resources/app.icns" ]; then
 fi
 
 # 17. Buscar greenworks-osx64.node
-GW_NODE=$(find "$TMP" -name "greenworks-osx64.node" -type f | head -n 1)
+GW_NODE=$(find "$TMP" -name "greenworks-osx64.node" -type f | grep -v "OMORI.app" | head -n 1)
 if [ -z "$GW_NODE" ]; then
     echo "ERROR: No se encontró greenworks-osx64.node en lo descargado."
     exit 1
@@ -121,8 +121,8 @@ fi
 cp greenworks.js "$LIBS_DIR/"
 cp node-polyfill-patch.js "$LIBS_DIR/"
 
-STEAM_API=$(find "$TMP" -name "libsteam_api.dylib" -type f | head -n 1)
-SDK_TICKET=$(find "$TMP" -name "libsdkencryptedappticket.dylib" -type f | head -n 1)
+STEAM_API=$(find "$TMP" -name "libsteam_api.dylib" -type f | grep -v "OMORI.app" | head -n 1)
+SDK_TICKET=$(find "$TMP" -name "libsdkencryptedappticket.dylib" -type f | grep -v "OMORI.app" | head -n 1)
 
 if [ -n "$STEAM_API" ]; then 
     cp "$STEAM_API" "$LIBS_DIR/"
