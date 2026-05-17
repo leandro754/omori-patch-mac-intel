@@ -1,3 +1,9 @@
 *.zip
 gw_tmp/
 steam_tmp/
+
+# Local OMORI investigation artifacts. Do not commit proprietary game files.
+OMORI.app/
+app.nw/
+omori-patch-mac-intel-main/
+omori-*.log
