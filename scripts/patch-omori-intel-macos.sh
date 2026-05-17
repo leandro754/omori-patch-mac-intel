@@ -126,6 +126,37 @@ fi
 cp "$GW_DIR/greenworks.js" "$LIBS_DIR/greenworks.js"
 cp "$GW_DIR/lib/greenworks-osx.node" "$LIBS_DIR/lib/greenworks-osx.node"
 
+# 18b. Cargar polyfill para escrituras numericas de Node moderno.
+cat > "$LIBS_DIR/node-polyfill-patch.js" <<'NODE_POLYFILL'
+(function patchFsNumericWrites() {
+    const fs = require("fs");
+    if (fs.__omoriNumericWritePatch) return;
+
+    const normalizeData = function(data) {
+        return typeof data === "number" ? data.toString() : data;
+    };
+
+    const oldWriteFile = fs.writeFile;
+    fs.writeFile = function(path, data, options, callback) {
+        return oldWriteFile.call(this, path, normalizeData(data), options, callback);
+    };
+
+    const oldWriteFileSync = fs.writeFileSync;
+    fs.writeFileSync = function(path, data, options) {
+        return oldWriteFileSync.call(this, path, normalizeData(data), options);
+    };
+
+    fs.__omoriNumericWritePatch = true;
+})();
+NODE_POLYFILL
+
+GREENWORKS_PATCHED="$TMP/greenworks.js.with-polyfill"
+{
+    printf '%s\n\n' 'require("./node-polyfill-patch");'
+    cat "$LIBS_DIR/greenworks.js"
+} > "$GREENWORKS_PATCHED"
+mv "$GREENWORKS_PATCHED" "$LIBS_DIR/greenworks.js"
+
 # 19. Copiar Steamworks API a /lib/ junto al .node y a MacOS
 STEAM_API="$STEAMWORKS_DIR/lib/steam/redistributable_bin/osx/libsteam_api.dylib"
 SDK_TICKET="$STEAMWORKS_DIR/lib/steam/public/steam/lib/osx/libsdkencryptedappticket.dylib"
@@ -206,10 +237,16 @@ file "$APP_DIR/Contents/MacOS/"*
 file "$APP_DIR/Contents/Resources/app.nw/js/libs/lib/greenworks-osx.node"
 file "$APP_DIR/Contents/Resources/app.nw/js/libs/lib/libsteam_api.dylib"
 file "$APP_DIR/Contents/Resources/app.nw/js/libs/lib/libsdkencryptedappticket.dylib"
+ls -lh "$APP_DIR/Contents/Resources/app.nw/js/libs" | grep -E "greenworks|node-polyfill" || true
 ls -lh "$APP_DIR/Contents/Resources/app.nw/js/libs/lib" | grep -E "greenworks|steam|sdk" || true
 
 if file "$APP_DIR/Contents/Resources/app.nw/js/libs/lib/greenworks-osx.node" | grep -qi "ASCII text"; then
     echo "ERROR: Greenworks se descargó mal; no es binario Mach-O."
+    exit 1
+fi
+
+if ! grep -q "node-polyfill-patch" "$APP_DIR/Contents/Resources/app.nw/js/libs/greenworks.js"; then
+    echo "ERROR: greenworks.js no está cargando el polyfill de escritura para Node moderno."
     exit 1
 fi
 

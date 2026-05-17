@@ -6,6 +6,7 @@ Este repositorio soluciona los problemas de compatibilidad para ejecutar la vers
 
 OMORI en macOS utiliza un empaquetado de 32 bits y una versión de NW.js que no es compatible con versiones modernas del sistema. Aunque existen otros scripts, este asegura ser robusto, completamente idempotente, e incorpora validaciones rigurosas.
 Evita problemas donde descargas mal realizadas (sin `-L`), binarios corruptos/falsos (archivos de texto en vez de ejecutables Mach-O), o mezclas incompatibles de Greenworks y Steamworks terminaban corrompiendo la instalación del juego.
+También inyecta un polyfill de escritura para Node moderno, necesario para evitar cierres al comenzar una partida nueva.
 
 La combinación usada por el parche es:
 
@@ -61,9 +62,10 @@ OMORI_DIR="/ruta/a/OMORI" ./install.sh
   Puedes verificar con el siguiente comando:
   ```bash
   file "OMORI.app/Contents/Resources/app.nw/js/libs/lib/greenworks-osx.node"
+  grep "node-polyfill-patch" "OMORI.app/Contents/Resources/app.nw/js/libs/greenworks.js"
   grep -E "SteamUser023|SteamFriends018" "OMORI.app/Contents/Resources/app.nw/js/libs/lib/libsteam_api.dylib"
   ```
-  El `.node` debe decir Mach-O, no ASCII text. La dylib debe mostrar `SteamUser023` y `SteamFriends018`. Nuestro script hace estas verificaciones por ti obligatoriamente.
+  El `.node` debe decir Mach-O, no ASCII text. `greenworks.js` debe cargar `node-polyfill-patch`, y la dylib debe mostrar `SteamUser023` y `SteamFriends018`. Nuestro script hace estas verificaciones por ti obligatoriamente.
 
 ## Advertencia
 - Este repositorio **NO** incluye el juego OMORI y no piratea absolutamente nada. Requiere una copia legítima del juego de Steam.
