@@ -122,6 +122,21 @@ fi
 RPG_MANAGERS="$NEW_APP/Contents/Resources/app.nw/js/rpg_managers.js"
 if [ -f "$RPG_MANAGERS" ]; then
     perl -0pi -e 's#^(\s*)let steamkey = [^\n]*;\s*$#$1let steamkey = ((String(window.nw.App.argv || "") + " " + String(process.argv || "")).match(/[0-9a-fA-F]{32}/) || [""])[0];#m' "$RPG_MANAGERS"
+    
+    # Inyectar el limpiador de ARGV para que GTP_CoreUpdates.js no lea "-psn" como parte de la clave.
+    cat << 'EOF' > "$TMP/argv-patch.js"
+// --- OMORI MAC INTEL FIX ---
+if (window.nw && window.nw.App) {
+    let rawArgs = (window.nw.App.argv || []).join(" ") + " " + (process.argv || []).join(" ");
+    let match = rawArgs.match(/[0-9a-fA-F]{32}/);
+    if (match) {
+        window.nw.App.argv = ["--" + match[0]];
+    }
+}
+// ---------------------------
+EOF
+    cat "$TMP/argv-patch.js" "$RPG_MANAGERS" > "$TMP/rpg_managers_patched.js"
+    mv "$TMP/rpg_managers_patched.js" "$RPG_MANAGERS"
 fi
 
 LIBS_DIR="$NEW_APP/Contents/Resources/app.nw/js/libs"
