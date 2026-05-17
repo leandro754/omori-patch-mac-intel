@@ -140,12 +140,12 @@ if [ ! -f "$SDK_TICKET" ]; then
     exit 1
 fi
 
-if ! strings "$STEAM_API" | grep -q "SteamUser023"; then
+if ! grep -q "SteamUser023" "$STEAM_API"; then
     echo "ERROR: libsteam_api.dylib no expone SteamUser023; no es compatible con Greenworks $GREENWORKS_VERSION."
     exit 1
 fi
 
-if ! strings "$STEAM_API" | grep -q "SteamFriends018"; then
+if ! grep -q "SteamFriends018" "$STEAM_API"; then
     echo "ERROR: libsteam_api.dylib no expone SteamFriends018; no es compatible con Greenworks $GREENWORKS_VERSION."
     exit 1
 fi
@@ -213,7 +213,7 @@ if file "$APP_DIR/Contents/Resources/app.nw/js/libs/lib/greenworks-osx.node" | g
     exit 1
 fi
 
-if ! strings "$APP_DIR/Contents/Resources/app.nw/js/libs/lib/libsteam_api.dylib" | grep -q "SteamUser023"; then
+if ! grep -q "SteamUser023" "$APP_DIR/Contents/Resources/app.nw/js/libs/lib/libsteam_api.dylib"; then
     echo "ERROR: libsteam_api.dylib instalada no es la versión compatible con Steamworks SDK 1.62."
     exit 1
 fi

@@ -61,7 +61,7 @@ OMORI_DIR="/ruta/a/OMORI" ./install.sh
   Puedes verificar con el siguiente comando:
   ```bash
   file "OMORI.app/Contents/Resources/app.nw/js/libs/lib/greenworks-osx.node"
-  strings "OMORI.app/Contents/Resources/app.nw/js/libs/lib/libsteam_api.dylib" | grep -E "SteamUser023|SteamFriends018"
+  grep -E "SteamUser023|SteamFriends018" "OMORI.app/Contents/Resources/app.nw/js/libs/lib/libsteam_api.dylib"
   ```
   El `.node` debe decir Mach-O, no ASCII text. La dylib debe mostrar `SteamUser023` y `SteamFriends018`. Nuestro script hace estas verificaciones por ti obligatoriamente.
 
