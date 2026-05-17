@@ -98,10 +98,10 @@ if [ -f "$BACKUP_DIR/Contents/Resources/app.icns" ]; then
     cp "$BACKUP_DIR/Contents/Resources/app.icns" "$NEW_APP/Contents/Resources/"
 fi
 
-# 17. Buscar greenworks-osx64.node
-GW_NODE=$(find "$TMP" -name "greenworks-osx64.node" -type f | grep -v "OMORI.app" | head -n 1)
+# 17. Buscar greenworks-osx.node
+GW_NODE=$(find "$TMP" -name "greenworks-*.node" -type f | grep -v "OMORI.app" | head -n 1)
 if [ -z "$GW_NODE" ]; then
-    echo "ERROR: No se encontró greenworks-osx64.node en lo descargado."
+    echo "ERROR: No se encontró un binario greenworks en lo descargado."
     exit 1
 fi
 
