@@ -126,6 +126,7 @@ SDK_TICKET=$(find "$TMP" -name "libsdkencryptedappticket.dylib" -type f | grep -
 
 if [ -n "$STEAM_API" ]; then 
     cp "$STEAM_API" "$LIBS_DIR/"
+    cp "$STEAM_API" "$NEW_APP/Contents/MacOS/"
 else 
     echo "ERROR: Falta libsteam_api.dylib."
     exit 1

@@ -15,6 +15,6 @@ else
     echo "Descargando y ejecutando script desde el repositorio remoto..."
     TMP=$(mktemp -d)
     trap 'rm -rf "$TMP"' EXIT
-    curl -fL --retry 3 --connect-timeout 20 "$REPO_URL/scripts/patch-omori-intel-macos.sh?v=$RANDOM" -o "$TMP/patch-omori-intel-macos.sh"
+    curl -fL --retry 3 --connect-timeout 20 "$REPO_URL/scripts/patch-omori-intel-macos.sh" -o "$TMP/patch-omori-intel-macos.sh"
     bash "$TMP/patch-omori-intel-macos.sh"
 fi
