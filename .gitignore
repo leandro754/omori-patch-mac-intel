@@ -1,9 +1,21 @@
+# Ignore everything
+*
+# But not these files
+!.gitignore
+!README.md
+!install.sh
+!LICENSE
+!scripts/
+!scripts/*
+!agent.md
+
+# But ignore temporary files even if inside scripts/
 *.zip
+*.log
 gw_tmp/
 steam_tmp/
-
-# Local OMORI investigation artifacts. Do not commit proprietary game files.
 OMORI.app/
 app.nw/
 omori-patch-mac-intel-main/
-omori-*.log
+nwjs-sdk-v0.98.0-win-x64/
+run-omori-test.bat

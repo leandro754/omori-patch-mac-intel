@@ -4,11 +4,13 @@ Este repositorio soluciona los problemas de compatibilidad para ejecutar la vers
 
 ## ¿Qué problema soluciona?
 
-OMORI en macOS utiliza un empaquetado de 32 bits y una versión de NW.js que no es compatible con versiones modernas del sistema. Aunque existen otros scripts, este asegura ser robusto, completamente idempotente, e incorpora validaciones rigurosas.
-Evita problemas donde descargas mal realizadas (sin `-L`), binarios corruptos/falsos (archivos de texto en vez de ejecutables Mach-O), o mezclas incompatibles de Greenworks y Steamworks terminaban corrompiendo la instalación del juego.
-También inyecta un polyfill de escritura para Node moderno, necesario para evitar cierres al comenzar una partida nueva.
-En Mac Intel también reemplaza flags antiguos de Chromium/GPU por flags seguros para evitar cierres nativos del renderer en canvas.
-Además crea `CUTSCENE.json` local si falta, porque OMORI puede intentar leerlo antes de generarlo en una instalación limpia.
+OMORI en macOS utiliza un empaquetado de 32 bits y una versión de NW.js que no es compatible con versiones modernas del sistema. Aunque existen otros scripts, este asegura ser robusto, completamente idempotente, e incorpora validaciones rigurosas para solucionar los 4 problemas principales que rompen el juego en Mac Intel:
+
+1. **Pantalla negra al iniciar ("Steam has not been detected"):** Actualiza NW.js (0.98.0), Greenworks (0.20.0) y el SDK de Steamworks (1.62) para que el juego moderno pueda comunicarse con Steam de forma correcta en sistemas de 64 bits.
+2. **Crasheos aleatorios por gráficos (WebGL/Canvas):** Inyecta flags seguros de Chromium (`--disable-gpu`, etc.) en `package.json` para evitar que las GPUs integradas de Intel provoquen cierres repentinos durante los combates.
+3. **Cierres al intentar guardar partida o ajustes:** Moderniza la forma en que el juego usa el sistema de archivos mediante un Polyfill de Node.js (`node-polyfill-patch.js`), reparando las escrituras "numéricas" que Node 20 ya no soporta.
+4. **Crash fatal al seleccionar "New Game" o "Continue" (Invalid key length):** El juego original intenta leer su clave secreta de encriptación desde los argumentos de lanzamiento de la aplicación (`argv`). Sin embargo, en macOS, Steam y Finder suelen inyectar un argumento extra (`-psn_0_...`) al abrir el juego. El motor de OMORI leía esa "basura" junto con la clave, corrompiéndola y provocando un error fatal al intentar desencriptar el primer mapa. Este parche limpia y aísla la clave de 32 caracteres para asegurar un inicio perfecto.
+Además, el parche crea archivos iniciales vitales como `CUTSCENE.json` para prevenir errores de *"archivo no encontrado"* en instalaciones limpias.
 
 La combinación usada por el parche es:
 
