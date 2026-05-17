@@ -238,6 +238,19 @@ rm -rf "$APP_DIR"
 cp -R "$NEW_APP" "$APP_DIR"
 printf '%s\n' "$APP_ID" > "$OMORI_DIR/steam_appid.txt"
 
+# 24b. Preparar datos locales que OMORI intenta leer antes de crearlos.
+echo "Preparando datos locales de OMORI..."
+mkdir -p "$HOME/Library/Preferences/com.omocat.omori"
+mkdir -p "$HOME/Library/Application Support/OMORI"
+for CUTSCENE_JSON in \
+    "$HOME/Library/Preferences/com.omocat.omori/CUTSCENE.json" \
+    "$HOME/Library/Application Support/OMORI/CUTSCENE.json"
+do
+    if [ ! -f "$CUTSCENE_JSON" ]; then
+        printf '{}\n' > "$CUTSCENE_JSON"
+    fi
+done
+
 # 25, 26. Ajustar permisos y quitar cuarentena
 echo "Ajustando permisos..."
 xattr -cr "$APP_DIR" || true

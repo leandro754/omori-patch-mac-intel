@@ -8,6 +8,7 @@ OMORI en macOS utiliza un empaquetado de 32 bits y una versión de NW.js que no 
 Evita problemas donde descargas mal realizadas (sin `-L`), binarios corruptos/falsos (archivos de texto en vez de ejecutables Mach-O), o mezclas incompatibles de Greenworks y Steamworks terminaban corrompiendo la instalación del juego.
 También inyecta un polyfill de escritura para Node moderno, necesario para evitar cierres al comenzar una partida nueva.
 En Mac Intel también reemplaza flags antiguos de Chromium/GPU por flags seguros para evitar cierres nativos del renderer en canvas.
+Además crea `CUTSCENE.json` local si falta, porque OMORI puede intentar leerlo antes de generarlo en una instalación limpia.
 
 La combinación usada por el parche es:
 
