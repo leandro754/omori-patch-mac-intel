@@ -48,23 +48,23 @@ CURL_OPTS="-fL --retry 3 --connect-timeout 20"
 
 # 11. Descargas requeridas
 echo "Descargando NW.js Intel x64..."
-curl $CURL_OPTS -o nwjs.zip "https://dl.nwjs.io/v0.98.0/nwjs-v0.98.0-osx-x64.zip"
-
-echo "Descargando Greenworks oficial..."
-curl $CURL_OPTS -o greenworks.zip "https://github.com/greenheartgames/greenworks/releases/download/v0.20.0/greenworks-v0.20.0-nw-v0.98.0-osx.zip"
-
-echo "Descargando greenworks.js..."
-curl $CURL_OPTS -o greenworks.js "https://raw.githubusercontent.com/DaCUtePotato/omori-apple-intel/master/lib/greenworks.js"
+curl $CURL_OPTS -o nwjs.zip "https://dl.nwjs.io/v0.77.0/nwjs-v0.77.0-osx-x64.zip"
 
 echo "Descargando node-polyfill-patch.js..."
-curl $CURL_OPTS -o node-polyfill-patch.js "https://raw.githubusercontent.com/DaCUtePotato/omori-apple-intel/master/lib/node-polyfill-patch.js"
+curl $CURL_OPTS -o node-polyfill-patch.js "https://github.com/SnowpMakes/omori-apple-silicon/releases/download/v1.1.0/node-polyfill-patch.js"
+
+echo "Descargando greenworks.js..."
+curl $CURL_OPTS -o greenworks.js "https://github.com/SnowpMakes/omori-apple-silicon/releases/download/v1.1.0/greenworks.js"
+
+echo "Descargando Greenworks Intel..."
+curl $CURL_OPTS -o greenworks-osxx64.node "https://github.com/SnowpMakes/greenworks-x64/releases/download/v1.0.0/greenworks-osxx64.node"
 
 echo "Descargando Steamworks API..."
 curl $CURL_OPTS -o steam.zip "https://dl.snowp.io/omori-apple-silicon/steam.zip"
 
 # 12. Verificar los ZIPs antes de extraer
 echo "Verificando integridad de los archivos descargados..."
-for zipfile in nwjs.zip greenworks.zip steam.zip; do
+for zipfile in nwjs.zip steam.zip; do
     if ! file "$zipfile" | grep -q "Zip archive data"; then
         echo "ERROR: $zipfile no es un archivo ZIP válido."
         exit 1
@@ -78,7 +78,6 @@ done
 # 13. Extraer con -oq
 echo "Extrayendo archivos..."
 unzip -oq nwjs.zip
-unzip -oq greenworks.zip
 unzip -oq steam.zip
 
 # Preparar nueva app en temporal
@@ -86,7 +85,7 @@ NEW_APP="$TMP/OMORI.app"
 echo "Armando nueva OMORI.app..."
 
 # 14. Copiar nwjs.app como nueva OMORI.app
-cp -R "nwjs-v0.98.0-osx-x64/nwjs.app" "$NEW_APP"
+cp -R "nwjs-v0.77.0-osx-x64/nwjs.app" "$NEW_APP"
 
 # 15. Copiar app.nw desde el backup original
 echo "Copiando datos del juego (esto puede tardar unos segundos)..."
@@ -98,24 +97,14 @@ if [ -f "$BACKUP_DIR/Contents/Resources/app.icns" ]; then
     cp "$BACKUP_DIR/Contents/Resources/app.icns" "$NEW_APP/Contents/Resources/"
 fi
 
-# 17. Buscar greenworks-osx.node
-GW_NODE=$(find "$TMP" -name "greenworks-*.node" -type f | grep -v "OMORI.app" | head -n 1)
-if [ -z "$GW_NODE" ]; then
-    echo "ERROR: No se encontró un binario greenworks en lo descargado."
-    exit 1
-fi
-
 LIBS_DIR="$NEW_APP/Contents/Resources/app.nw/js/libs"
 mkdir -p "$LIBS_DIR"
 
 # 18. Copiar a la carpeta libs
-cp "$GW_NODE" "$LIBS_DIR/greenworks-osx64.node"
+cp "greenworks-osxx64.node" "$LIBS_DIR/greenworks-osx64.node"
 
 # 19. Copia de compatibilidad greenworks-osxx64.node si es referenciada
-if grep -q "osxx64" greenworks.js; then
-    echo "greenworks.js referencia osxx64, creando copia de compatibilidad..."
-    cp "$GW_NODE" "$LIBS_DIR/greenworks-osxx64.node"
-fi
+cp "greenworks-osxx64.node" "$LIBS_DIR/greenworks-osxx64.node"
 
 # 20. Copiar resto de dependencias
 cp greenworks.js "$LIBS_DIR/"
