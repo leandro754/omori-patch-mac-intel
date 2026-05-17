@@ -64,10 +64,11 @@ OMORI_DIR="/ruta/a/OMORI" ./install.sh
   ```bash
   file "OMORI.app/Contents/Resources/app.nw/js/libs/lib/greenworks-osx.node"
   grep '"chromium-args"' "OMORI.app/Contents/Resources/app.nw/package.json"
+  grep -F 'match(/[0-9a-fA-F]{32}/)' "OMORI.app/Contents/Resources/app.nw/js/rpg_managers.js"
   grep "node-polyfill-patch" "OMORI.app/Contents/Resources/app.nw/js/libs/greenworks.js"
   grep -E "SteamUser023|SteamFriends018" "OMORI.app/Contents/Resources/app.nw/js/libs/lib/libsteam_api.dylib"
   ```
-  El `.node` debe decir Mach-O, no ASCII text. `package.json` debe contener `--disable-gpu`, `greenworks.js` debe cargar `node-polyfill-patch`, y la dylib debe mostrar `SteamUser023` y `SteamFriends018`. Nuestro script hace estas verificaciones por ti obligatoriamente.
+  El `.node` debe decir Mach-O, no ASCII text. `package.json` debe contener `--disable-gpu`, `rpg_managers.js` debe extraer la clave de Steam con un bloque hexadecimal de 32 caracteres, `greenworks.js` debe cargar `node-polyfill-patch`, y la dylib debe mostrar `SteamUser023` y `SteamFriends018`. Nuestro script hace estas verificaciones por ti obligatoriamente.
 
 ## Advertencia
 - Este repositorio **NO** incluye el juego OMORI y no piratea absolutamente nada. Requiere una copia legítima del juego de Steam.
